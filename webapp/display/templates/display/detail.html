@@ -1,120 +1,43 @@
-{% load staticfiles %}
-<html>
-    <head>
-        <title>SlowControl</title>
-        <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap.min.css">
-        <link rel="stylesheet" href="//maxcdn.bootstrapcdn.com/bootstrap/3.2.0/css/bootstrap-theme.min.css">
-	    <link rel="stylesheet" href="{% static 'css/styles.css' %}">
-	    <link rel="stylesheet" href="{% static 'css/monitor.css' %}"> 
-	    <link rel="stylesheet" href="{% static 'css/detail.css' %}">
-
-	    <meta charset='utf-8'>
-	    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-	    <meta name="viewport" content="width=device-width, initial-scale=1">
-	    <script src="http://code.jquery.com/jquery-latest.min.js" type="text/javascript"></script>
-
-        <!-- dygraph for ploting data and SavePlot.js for saving the plot -->
-	    <script src="//cdnjs.cloudflare.com/ajax/libs/dygraph/1.1.0/dygraph-combined.js"></script>
-	    <script src="/static/java_scripts/SavePlot.js"></script>  <!-- saving plot to png -->
-
-
-    <!------- date range picker from http://www.daterangepicker.com/ ------->
-        <!-- Include Required Prerequisites -->
-        <script type="text/javascript" src="//cdn.jsdelivr.net/jquery/1/jquery.min.js"></script>
-        <script type="text/javascript" src="//cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
-        <!-- Include Date Range Picker -->
-        <script type="text/javascript" src="//cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.js"></script>
-        <link rel="stylesheet" type="text/css" href="//cdn.jsdelivr.net/bootstrap.daterangepicker/2/daterangepicker.css" /> 
-        <!-- js for date range picker -->
-        <script type="text/javascript">
-        $(function() {
-            $('input[name="daterange"]').daterangepicker({
-                timePicker: true,
-                timePicker24Hour: true,
-                timePickerIncrement: 30,
-                ranges: {
-                   'Last hour': [moment().subtract(1, 'hours'), moment()],
-                   'Last 3 hours': [moment().subtract(3, 'hours'), moment()],
-                   'Last Day': [moment().subtract(1, 'days'), moment()],
-                   'Last 7 Days': [moment().subtract(6, 'days'), moment()],
-                   'Last 30 Days': [moment().subtract(29, 'days'), moment()],
-                },
-                locale: {
-                    format: 'MM/DD/YYYY hh:mm A'
-                }
-            });
-        });
-        </script>
-    <!-- end date range picker from http://www.daterangepicker.com/ -->
-
-    </head>
-
-    <div id="headerBar"></div>
-
-    <body>
+{% extends "display/base.html" %}
 
     <!-- header bar with title -->
-    <header>
-	    <h1>SlowControl</h1>
-	    <h2>{{config.controller}}</h2>
-    </header>
+    {% block subtitle %}{{config.controller}}{% endblock %}
 
-	<!-- menu bar on left side -->
-	<div id='cssmenu'>
-		<ul>
-		   <li><a href='/display/'><span>Home</span></a></li>
-		   <li class='active has-sub'><a href='/display/'><span>Controllers</span></a>
-			  <ul>
-				{% if Config_list %}
-					{% for config in Config_list %}
-						<li class='last'><a href="/display/{{ config.controller }}/"><span>{{ config.controller }}</span></a></li>
-					{% endfor %}
-				{% else %}
-					<p>No controllers are available.</p>
-				{% endif %}
-			  </ul>
-		   </li>
-		   <li><a href='/display/monitor/'><span>Monitor</span></a></li>
-		</ul>
-
+	{% block sidebar %}
 		<div class="box2" ></div>
 
 		<ul>
 
 		<!-- selection of data and timerange -->
-			<form id="streamform" action="/display/{{config.controller}}/" method="post">
-				{% csrf_token %}
+			<form >
 			 <li><div class="styles"><font color="white">Select Data:</font>
-				<select width="15px" name="dropdown1">
-					<option value="{{ YaxisDj }}">{{ YaxisDj }}</option>
+				<select width="15px" id="dropdown1" name="dropdown1">
 				{% for DataName in DataNames %}
-					{% if  YaxisDj  !=  DataName  %} 
 						<option value="{{ DataName }}">{{ DataName }}</option> 
-					{% endif %}
 				{% endfor %}
 				</select>
 			</div></li>
 			<li><div class="styles"><font color="white">Select Time Range:</font>
-				<input type="text" size="15" name="daterange" value="{{time_start_string}} - {{time_end_string}}"></input>
-			</div></li>
-			<li><div class="styles">
-				<input type="submit" value="plot" id="streambutton"/>
+				<input type="text" size="15" id="daterange" name="daterange" value="{{time_start_string}} - {{time_end_string}}"></input>
 			</div></li>
 			</form>
 		<!-- end selection of data and timerange -->
 
-		<!-- save plot as png -->
-		<li><a class="save_link" onclick="SavePlot()"><span>Save as png</span></a></li>
 
 		<!-- save plot as csv -->
-		<li><a class="save_link" onclick="SavePlotCSV()"><span>Save as csv</span></a></li>
+    	<li><a class="save_link" onclick="MakePlot()"><span>plot</span></a></li>
+		<li><a class="save_link" onclick="getCSVdata()"><span>Save as csv</span></a></li>
+		<!-- <li><font color="white">LINES  </font><div class="toggle-button"><button id="toggle" name="toggle" value="m"></button></div><font color="white">  MARKERS</font></li> -->
+
+		<li><font color="white">USE MARKERS  </font>   <input type="checkbox" id="toggle"> </li>
+
 		</ul>
-	</div>
-	<!-- end menu bar on left side -->
+    {% endblock %}<!-- end menu bar on left side -->
+
 
 	<!-- main section -->
-	<section>
-
+    {% block content %}
+    
         <!-- Table showing controller status/properties --> 
 		<div  id='overview_table' style="margin-right:10px; margin-left:0">
 		 <table border="1" style="width:100%">
@@ -139,61 +62,118 @@
        
 
         <!-- create container for plot --> 
-		<p><div id="plot1" class="box"></div></p> 
+		<p><div id="plot1" style="display: inline-block; width: 85%; height: 48%; margin: 0.5em; box-shadow: 0px 0px 5px #888888;"></div></p> 
+		
 
-	</section> 
+    {% endblock %}
 
-    </body>
+	{% block javascript %}
+        <!----------- create the plot ----------->
+        <script type="text/javascript">
+        
+/*
+		$(document).on('click', '.toggle-button', function() {
+			$(this).toggleClass('toggle-button-selected');
+			MakePlot();
+			console.log($(this).value);
+		});
+*/
+	    // get data and make plot
+        function MakePlot(){
+    	    var controllerdata = document.getElementById("dropdown1");
+            var controllerdatavalue = controllerdata.options[controllerdata.selectedIndex].value;
 
+			var confirmvalue;
+	
+            var range = document.getElementById('daterange').value;
+	        $.getJSON('{% url 'index' %}data/{{config.controller}}/'+controllerdatavalue+'/'+range,function(data){
+                console.log(data);
 
-    <!----------- create the plot ----------->
-    <script type="text/javascript">
-	    var djangoData = {{ data|safe }};
+                // prepare data for plot
+	            var dataX = new Array(data.length);
+	            var dataY = new Array(data.length);
+	            for(var i = 0; i < data.length; i++){
+		            dataX[i] = new Date(data[i][0]);
+		            dataY[i] = data[i][1];
+	            }
+	            if(data.length==0)alert("Can't plot empty data set");
 
-        // prepare data for dygraph
-	    var dateJ = new Array(djangoData.length);
-	    for(var i = 0; i < djangoData.length; i++){
-		    dateJ[i] = [new Date(djangoData[i][0]), djangoData[i][1] ];
-	    }
-	    if(djangoData.length==0)alert("Can't plot empty data set");
+				if(document.getElementById('toggle').checked){
+					if(data.length>10000) {
+							if (confirm("You selected more than 10000 datapoints for plotting while checked 'USE MARKERS'.\nThis might slowdown your script significantly.\n\nDo you want to continue?") == true) {
+								confirmvalue = 1;
+							} else {
+								confirmvalue = 0;
+							}
+					}
+					else confirmvalue = 1;
+					if(confirmvalue==1){
+					    var plotdata = [
+					      {
 
-	    // The actual Dygraph constructor
-	    chart = new Dygraph(
-		    document.getElementById("plot1"),
-		    dateJ,
-		    {
-			labels: [ "time","{{ YaxisDj }}" ],
-	            	animatedZooms: true,
-			legend: 'always',
-			title: '{{config.controller}}/{{ YaxisDj }}',
-			drawPoints: true,
-			strokeWidth: 0,
-			pointSize: 2
-		    }
-	    );
+					        x: dataX,
+					        y: dataY,
+					        mode: 'markers',
+					        marker: { size: 3 },
+					        type: 'scatter',
+					      }
+					    ];
+					}
+				}
+				if(!document.getElementById('toggle').checked){
+		            var plotdata = [
+		              {
 
-        //saveing the plot as png
-        function SavePlot(){
-              var imgExport = document.createElement('imgExport');
-              Dygraph.Export.asPNG(chart,imgExport);
-              window.location.href = imgExport.src.replace('image/png','image/octet-stream');
+		                x: dataX,
+		                y: dataY,
+		                mode: 'lines',
+		                type: 'scatter',
+		              }
+		            ];
+				}
+
+                var layout = {
+                  title: '{{config.controller}}',
+                  yaxis: {
+                    title: controllerdatavalue,
+                    titlefont: {
+                      family: 'Courier New, monospace',
+                      size: 18,
+                      color: '#7f7f7f'
+                    }
+                  }
+                };
+                if((document.getElementById('toggle').checked && confirmvalue==1) || !document.getElementById('toggle').checked)Plotly.newPlot('plot1', plotdata, layout, {showLink: false, displaylogo: false, modeBarButtonsToRemove: ['sendDataToCloud','lasso2d','select2d']});	
+	        }); //end getJSON
+        }
+        
+        
+	    
+	    // get data and save to csv file
+        function getCSVdata(graph){
+    	    var controllerdata = document.getElementById("dropdown1");
+            var controllerdatavalue = controllerdata.options[controllerdata.selectedIndex].value;
+            var range = document.getElementById('daterange').value;
+	        $.getJSON('{% url 'index' %}data/{{config.controller}}/'+controllerdatavalue+'/'+range,function(data){
+ 
+     	        var dateCSV = new Array(data.length);
+	            for(var i = 0; i < data.length; i++){
+		            dateCSV[i] = [data[i][0].substring(0, 10),data[i][0].substring(11, 19), data[i][1] ];
+	            }
+	            var csvString = dateCSV.join("%0A");
+	            var a         = document.createElement('a');
+	            a.href        = 'data:attachment/csv,' + csvString;
+	            a.target      = '_blank';
+	            a.download    = 'myFile.csv';
+	            document.body.appendChild(a);
+	            a.click();
+	        
+	        }); //end getJSON
         }
 
-	// save the plots as csv file
-	function SavePlotCSV(){
-	    var dateCSV = new Array(djangoData.length);
-	    for(var i = 0; i < djangoData.length; i++){
-		    dateCSV[i] = [djangoData[i][0].substring(0, 10),djangoData[i][0].substring(11, 19), djangoData[i][1] ];
-	    }
-	    var csvString = dateCSV.join("%0A");
-	    var a         = document.createElement('a');
-	    a.href        = 'data:attachment/csv,' + csvString;
-	    a.target      = '_blank';
-	    a.download    = 'myFile.csv';
-	    document.body.appendChild(a);
-	    a.click();
-	}
-    </script>
-
+	    
+	    
+        </script>
+    {% endblock %}
 
 </html>

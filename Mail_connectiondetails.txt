@@ -10,7 +10,7 @@ port = 587
 fromaddr = gemsesc@yahoo.com
 #
 # password: to the address given in fromaddr.
-password = *****
+password = ***
 #
 # contactaddr: address given as contact for questions and further information (only one address can be used). If no contactaddres given write: -
 contactaddr = moritz.vonsivers@lhep.unibe.ch

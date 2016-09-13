@@ -1,0 +1,21 @@
+# Backup file of the contacts table in DobermanDB. Updated: 2016-09-12 15:16:44.138511
+Moritz
+MAIL
+moritz.vonsivers@lhep.unibe.ch
+
+--------------------
+Ake
+MAIL
+ake.rosen@geo.unibe.ch
+
+--------------------
+Jean-Michel
+MAIL
+jean-michel.vuilleumier@lhep.unibe.ch
+
+--------------------
+Marc
+MAIL
+marc.schumann@lhep.unibe.ch
+
+--------------------

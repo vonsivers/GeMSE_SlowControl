@@ -36,9 +36,6 @@ def detail(request, config_controller):
     # collect data for info table
     config = get_object_or_404(Config, pk=config_controller)
 
-
-    data_name = config.description[0]
-
     # initialize the datetime range (default is last day)
     time_start = datetime.datetime.now()+datetime.timedelta(seconds=7200)-datetime.timedelta(seconds=86400)
     time_end = datetime.datetime.now()+datetime.timedelta(seconds=7200)
@@ -46,45 +43,52 @@ def detail(request, config_controller):
     time_start_string = time_start.strftime('%m/%d/%Y %I:%M %p')
     time_end_string = time_end.strftime('%m/%d/%Y %I:%M %p')
 
-
-    #get description of data to plot from dropdown list in detail template
-    if request.method == 'POST':
-        if request.POST.get('dropdown1', False):
-            data_name = str(request.POST['dropdown1'])
-        if request.POST.get('daterange', False):
-            time_range = str(request.POST['daterange'])
-
-            time_start_string = time_range[:19]
-            time_start = datetime.datetime.strptime(time_start_string, "%m/%d/%Y %I:%M %p")
-            time_end_string = time_range[22:41]
-            time_end = datetime.datetime.strptime(time_end_string, "%m/%d/%Y %I:%M %p")
-
-
-    #---- prepare data for plot -----
-    db_table = 'data_' + config_controller
-    DataClass = getModel(db_table.lower()) #use lower case of 'db_table'
-
-    # data description => position in array
-    for i in range(0, config.number_of_data):
-        if data_name == config.description[i]:
-            data_select = i
-            
-
-    complete_list = DataClass.objects.filter(datetime__range=[time_start,time_end]) #get list within time range
-    datepoint = [datetime.datetime.strftime(DataClass.datetime,"%Y/%m/%d %H:%M:%S") for DataClass in complete_list] #format datetime
-    datapoint = [DataClass.data[data_select] for DataClass in complete_list] # get data
-    data = []
-    for i in range(0, len(datepoint)): #len(datepoint)
-        data.append([datepoint[i], datapoint[i] ]) 
-
-    Yaxis = config.description[data_select]
     DataNames = ["" for x in range(0, config.number_of_data)] #list containing the name of data in the data array
     for x in range(0, config.number_of_data):
         DataNames[x] = config.description[x]
 
 
-    return render(request, 'display/detail.html', {'time_start_string': time_start_string, 'time_end_string':time_end_string, 'Config_list': Config_list,'config': config,'YaxisDj': Yaxis, 'DataNames': DataNames, 'data': json.dumps(data, cls=DjangoJSONEncoder)})
+    return render(request, 'display/detail.html', {'time_start_string': time_start_string, 'time_end_string':time_end_string, 'Config_list': Config_list,'config': config, 'DataNames': DataNames})
 
+
+#---------------------------------------------------------------
+def getCVSdata(request, controller, select, t1, t2, t3, t4, t5): 
+
+    if request.method == 'GET':
+        data = controller+'/'+select+'/'+t1+'/'+t2+'/'+t3+'/'+t4+'/'+t5
+        
+        # get information about controller
+        config = get_object_or_404(Config, pk=controller)
+        counter = 0
+        #select data to plot
+        for data in config.description:
+            if data == select:
+                data_select = counter
+            counter = counter+1
+            
+    	#define DB table to look for the data
+        db_table = 'data_' + controller
+        DataClass = getModel(db_table.lower()) #use lower case of 'db_table'
+
+        time_start_string = t1+'/'+t2+'/'+t3[:13]
+        time_start = datetime.datetime.strptime(time_start_string, "%m/%d/%Y %I:%M %p")
+        time_end_string = t3[16:]+'/'+t4+'/'+t5
+        time_end = datetime.datetime.strptime(time_end_string, "%m/%d/%Y %I:%M %p")
+
+	# search for data using time range
+        complete_list = DataClass.objects.filter(datetime__range=[time_start,time_end])
+	# extract data points
+        datepoint = [datetime.datetime.strftime(DataClass.datetime,"%Y/%m/%d %H:%M:%S") for DataClass in complete_list] #format datetime
+	# extract time points
+        datapoint = [DataClass.data[data_select] for DataClass in complete_list]
+        # extract status of datapoint
+        status = [DataClass.status[data_select] for DataClass in complete_list]
+	# put data into list of the form [[data1, time1], [data2, time2], ...]
+        data = []
+        for i in range(0, len(datepoint)): #len(datepoint)
+            data.append([datepoint[i], datapoint[i] ])
+
+    return HttpResponse(json.dumps(data, cls=DjangoJSONEncoder), content_type='display/detail/json')
 
 
 # call monitor page of WebApp: 

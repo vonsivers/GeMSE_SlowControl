@@ -2,12 +2,15 @@ import datetime
 import os
 import Queue
 import logging
+import DobermanDB
 
 
 class DobermanCommunication(object):
     """
     Passes data to the Doberman slow control program over a queue.
     Tests the values first.
+    Important: Pass the logger if you using any, otherways it can produce
+       duplicated logging output.
     """
 
     def __init__(self, queue, name, logger=None):
@@ -16,18 +19,18 @@ class DobermanCommunication(object):
         self.name = name
 
         if not self.logger:
-            opts.loglevel = 20
+            loglevel = 20
             logger = logging.getLogger()
-            logger.setLevel(int(opts.loglevel))
+            logger.setLevel(int(loglevel))
             chlog = logging.StreamHandler()
-            chlog.setLevel(int(opts.loglevel))
+            chlog.setLevel(int(loglevel))
             formatter = logging.Formatter('%(levelname)s:%(process)d:%'
                                           '(module)s:%(funcName)s:%(lineno)d:%'
                                           '(message)s')
             chlog.setFormatter(formatter)
             logger.addHandler(chlog)
             logger.info("No logger given. Addeed default logger with "
-                        "loglevel %s" % str(opts.loglevel))
+                        "loglevel %s" % str(loglevel))
             self.logger = logger
 
     def pushToQueue(self, data, status=None, logtime=None):
@@ -96,6 +99,24 @@ class DobermanCommunication(object):
         return 0
 
 
+    def getConfigUpdates(self, name):
+        """
+        Use this function to get the latest config settings.
+        E.g. call this function periodically to check
+        if the readoutinterval has changed.
+        Returns config as a list.
+        """
+        try:
+            DDB = DobermanDB.DobermanDB(opts, opts.logger)
+            config = DDB.getConfig(name)
+            if config in [-1, -2, -3]:
+                self.logger.error("Unable to get config updates.")
+                return -1
+            return config[0]
+        except Exception as e:
+            self.logger.error("Unable to get config updates. Error: %s" % e)
+            return -1
+
 if __name__ == '__main__':
     from argparse import ArgumentParser
     import sys
@@ -106,6 +127,7 @@ if __name__ == '__main__':
     opts = parser.parse_args()
 
     logger = logging.getLogger()
+    opts.logger = logger
     if opts.loglevel not in [0, 10, 20, 30, 40, 50]:
         print("ERROR: Given log level %i not allowed. "
               "Fall back to default value of 10" % opts.loglevel)
@@ -124,5 +146,6 @@ if __name__ == '__main__':
         print 'In the queue is:', queue.get()
     else:
         print 'Queue empty.'
-
+    print "Testing system by reading config for 'testdev'..."
+    print (DoCo.getConfigUpdates('testdev'))
     sys.exit(0)

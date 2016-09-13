@@ -37,6 +37,8 @@ class alarmDistribution(object):
             connection_details = []
             with open("Mail_connectiondetails.txt", "r") as f:
                 for line in f:
+                    if not line or line == '\n':
+                        continue
                     if str(line)[0] == '#':
                         continue
                     line = line.split('=')
@@ -44,6 +46,12 @@ class alarmDistribution(object):
         except Exception as e:
             self.logger.warning("Can not load email connection details. "
                                 "Error: %s" % e)
+            return []
+        # Protection against default connection details
+        if connection_details[2] == "myemail@gmail.com":
+            self.logger.error("Default identification in file "
+                              "'Mail_connectiondetails.txt'! No alarms will "
+                              "be sent. Update connectiondetails first!")
             return []
         self.logger.debug("Email connection details loaded from file.")
         return connection_details
@@ -56,6 +64,8 @@ class alarmDistribution(object):
             connection_details = []
             with open("SMS_connectiondetails.txt", "r") as f:
                 for line in f:
+                    if not line or line == '\n':
+                        continue
                     if str(line)[0] == '#':
                         continue
                     line = line.split('=')
@@ -63,6 +73,12 @@ class alarmDistribution(object):
         except Exception as e:
             self.logger.warning("Can not load SMS connection details. "
                                 "Error: %s" % e)
+            return []
+        # Protection against default connection details
+        if connection_details[1] == "myserialnumber.mypassword":
+            self.logger.error("Default identification in file "
+                              "'SMS_connectiondetails.txt'! No SMS will be "
+                              "sent. Update connectiondetails first!")
             return []
         self.logger.debug("SMS connection details loaded from file.")
         return connection_details
